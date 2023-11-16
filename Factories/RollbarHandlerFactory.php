@@ -37,6 +37,20 @@ class RollbarHandlerFactory
             };
         }
 
+        if (!empty($config['check_ignore'])) {
+            if (is_callable($config['check_ignore'])) {
+                $config['check_ignore'] = static function(...$args) use ($config) {
+                    return call_user_func($config['check_ignore'], ...$args);
+                };
+            } elseif (preg_match('/\@[a-z0-9_\/\.]+/i', $config['check_ignore'])) {
+                if (is_callable($service = $container->get(substr($config['check_ignore'], 1)))) {
+                    $config['check_ignore'] = $service;
+                }
+            } else {
+                $config['check_ignore'] = null;
+            }
+        }
+
         $config['framework'] = 'symfony ' . Kernel::VERSION;
 
         Rollbar::init($config, false, false, false);
